@@ -79,7 +79,7 @@ const ProfileScreen = () => {
       </ScrollView>
 
       {/* Posts Section */}
-      <ScrollView contentContainerStyle={{ marginBottom: -50 }}>
+      <ScrollView contentContainerStyle={{ marginBottom: -150 }}>
         <Text style={styles.sectionTitle}>Reviews</Text>
         <View style={styles.postGrid}>
           {item.review_image?.map((review, index) => (
@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 2,
     borderColor: "#1e90ff",
+
   },
   highlightText: {
     color: "black",
@@ -197,7 +198,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginLeft: 10,
-    marginTop: 20,
+    marginTop: 10,
+    margin:5
   },
   postGrid: {
     flexDirection: "row",

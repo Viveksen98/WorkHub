@@ -23,12 +23,12 @@ const Profile = () => {
       setUser(currentUser);
       fetchProfilePic(currentUser.uid);
     }
-    fetchFirestoreRequests(); // Load requests from Firestore
+    fetchFirestoreRequests();
   }, []);
 
   const fetchFirestoreRequests = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'workerRequests')); // Replace with your collection name
+      const querySnapshot = await getDocs(collection(db, 'workerRequests'));
       const fetchedRequests = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setFirestoreRequests(fetchedRequests);
     } catch (error) {
@@ -42,7 +42,12 @@ const Profile = () => {
       const url = await getDownloadURL(profilePicRef);
       setProfilePic(url);
     } catch (error) {
-      console.log('Error fetching profile picture:', error);
+      if (error.code === 'storage/object-not-found') {
+        console.log('No profile picture found, using default.');
+        setProfilePic(null);
+      } else {
+        console.log('Error fetching profile picture:', error);
+      }
     }
   };
 
@@ -97,8 +102,25 @@ const Profile = () => {
   };
 
   const navigateToHome = () => {
-    // Reset the navigation to Home
-    router.replace("(src)/Home"); // Make sure this is the correct route
+    router.replace("(src)/Home");
+  };
+
+  const updateStatus = (request) => {
+    setTimeout(() => {
+      request.status = 'Accepted'; // Update status to Accepted after 5 seconds
+      setFirestoreRequests((prevRequests) =>
+        prevRequests.map((r) => (r.id === request.id ? { ...r, status: 'Accepted' } : r))
+      );
+    }, 5000);
+  };
+
+  const getStatusStyle = (status) => {
+    if (status === 'Pending') {
+      return { color: 'red' }; // Red for Pending
+    } else if (status === 'Accepted') {
+      return { color: 'green' }; // Green for Accepted
+    }
+    return { color: 'black' }; // Default color
   };
 
   if (!user) {
@@ -111,7 +133,7 @@ const Profile = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.welcomeText}>Welcome, {user.fullname || user.email}</Text>
+      <Text style={styles.welcomeText}>Welcome, {user.displayName || user.email}</Text>
       {imageLoading ? (
         <Text>Loading image...</Text>
       ) : (
@@ -119,7 +141,7 @@ const Profile = () => {
           source={
             profilePic
               ? { uri: profilePic }
-              : require('./../../assets/images/profile-png-icon-4.jpg')
+              : require('./../../assets/images/profile-png-icon-4.jpg') // Default image
           }
           style={styles.profilePic}
         />
@@ -131,18 +153,22 @@ const Profile = () => {
         {firestoreRequests.length === 0 ? (
           <Text style={styles.noRequestsText}>No scheduled requests yet.</Text>
         ) : (
-          firestoreRequests.map((request) => (
-            <View key={request.id} style={styles.requestItem}>
-              <Text style={styles.requestText}>Date: {request.date}</Text>
-              <Text style={styles.requestText}>Time: {request.time}</Text>
-              <Text style={styles.requestText}>Worker: {request.worker}</Text>
-              <Text style={styles.requestText}>Status: {request.status || 'Pending'}</Text>
-            </View>
-          ))
+          firestoreRequests.map((request) => {
+            updateStatus(request); // Automatically update status
+            return (
+              <View key={request.id} style={styles.requestItem}>
+                <Text style={styles.requestText}>Date: {request.date}</Text>
+                <Text style={styles.requestText}>Time: {request.time}</Text>
+                <Text style={styles.requestText}>Worker: {request.worker}</Text>
+                <Text style={[styles.requestText, getStatusStyle(request.status)]}>
+                  Status: {request.status || 'Pending'}
+                </Text>
+              </View>
+            );
+          })
         )}
       </ScrollView>
 
-      {/* FAB for Logout */}
       <FAB
         style={styles.fabLogout}
         icon="logout"
@@ -150,7 +176,6 @@ const Profile = () => {
         label="Logout"
       />
 
-      {/* FAB for Home */}
       <FAB
         style={styles.fabHome}
         icon="home"
@@ -202,8 +227,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   requestItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     marginBottom: 10,
     padding: 10,
     backgroundColor: '#f8f8f8',
@@ -214,6 +239,7 @@ const styles = StyleSheet.create({
   requestText: {
     fontSize: 16,
     color: '#333',
+    marginBottom: 5,
   },
   fabLogout: {
     position: 'absolute',
