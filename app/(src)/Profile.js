@@ -4,7 +4,7 @@ import { auth, storage, db } from './../../configs/FirebaseConfig';
 import * as ImagePicker from 'expo-image-picker';
 import { FAB } from 'react-native-paper';
 import { ref, getDownloadURL, uploadBytes } from 'firebase/storage';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { useRoute } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import { router } from "expo-router";
@@ -105,13 +105,24 @@ const Profile = () => {
     router.replace("(src)/Home");
   };
 
+  // Update status in Firestore and local state
   const updateStatus = (request) => {
-    setTimeout(() => {
-      request.status = 'Accepted'; // Update status to Accepted after 5 seconds
-      setFirestoreRequests((prevRequests) =>
-        prevRequests.map((r) => (r.id === request.id ? { ...r, status: 'Accepted' } : r))
+    setTimeout(async () => {
+      // Update local state
+      const updatedRequests = firestoreRequests.map((r) =>
+        r.id === request.id ? { ...r, status: 'Accepted' } : r
       );
-    }, 5000);
+      setFirestoreRequests(updatedRequests);
+
+      // Update Firestore document
+      try {
+        const requestRef = doc(db, 'workerRequests', request.id);
+        await updateDoc(requestRef, { status: 'Accepted' });
+        console.log('Status updated to Accepted in Firestore');
+      } catch (error) {
+        console.error('Error updating status in Firestore:', error);
+      }
+    }, 5000); // 5 seconds delay
   };
 
   const getStatusStyle = (status) => {
